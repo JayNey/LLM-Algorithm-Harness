@@ -138,6 +138,56 @@ RECOMMENDATION_SET = {"id": "set-demo", "name": "数组练习"}
 DATASET_VERSION = {"id": "version-demo", "name": "审核后的题集", "problem_count": 1}
 GOVERNANCE_REQUEST = {"problem_ids": ["two-sum"], "run_ids": ["eval-demo"]}
 GOVERNANCE_TOKEN = "0" * 64 + "." + "0" * 64
+VERSION_DATASET = [
+    {
+        "problem_id": "two-sum",
+        "title": "Two Sum",
+        "description": "Return the indices of two numbers that add up to the target.",
+        "difficulty": "medium",
+        "tags": ["array"],
+        "constraints": "2 <= nums.length <= 10000",
+        "schema_version": "1.1",
+        "source_platform": "leetcode",
+        "source_problem_id": "1",
+        "source_url": "https://leetcode.com/problems/two-sum/",
+        "source_version": "reviewed-1",
+        "source_metadata": {"imported_from": "personal-library"},
+        "input_output_mode": "function",
+        "entry_point": "solution(nums, target)",
+        "judge_config": {"comparison": "exact"},
+        "public_test_cases": [
+            {"input": {"nums": [2, 7, 11, 15], "target": 9}, "expected_output": [0, 1]}
+        ],
+        "feedback_test_cases": [],
+        "hidden_test_cases": [
+            {
+                "input": {"nums": [3, 2, 4], "target": 6},
+                "expected_output": [1, 2],
+                "source": "hidden",
+            }
+        ],
+    }
+]
+VERSION_CHANGE_REPORT = {
+    "schema_version": 1,
+    "version": DATASET_VERSION,
+    "source_revision": "0" * 64,
+    "preview": {**GOVERNANCE_REQUEST, "easy_threshold": 0.7, "hard_threshold": 0.3},
+    "changes": [
+        {
+            "problem_id": "two-sum",
+            "original_tags": ["Array"],
+            "new_tags": ["array"],
+            "original_difficulty": "easy",
+            "new_difficulty": "medium",
+            "approval": {
+                "normalize_tags": True,
+                "suggested_tags": [],
+                "apply_difficulty": True,
+            },
+        }
+    ],
+}
 
 
 # Handler name -> purpose, response data. Aliased paths share the same contract.
@@ -175,6 +225,14 @@ OPERATIONS: dict[str, tuple[str, Any]] = {
         DATASET_VERSION,
     ),
     "list_problem_versions": ("列出自己保存的个人题集版本。", [DATASET_VERSION]),
+    "export_problem_version": (
+        "下载本人所选治理版本保存时的完整 Problem JSON 数组，保留测试、判题、入口和来源元数据；不是当前个人主库或详情摘要。版本不存在、属于他人或已清理时返回 404，成功返回文件附件。支持 Bearer 或会话 Cookie。",
+        None,
+    ),
+    "export_problem_version_report": (
+        "下载本人所选治理版本保存时持久化的标签/难度变更报告，包含版本、题目 ID、原值、新值和批准项；不根据后来主库推断差异。版本不可访问返回 404，旧版本等缺少历史报告时返回 409，成功返回 JSON 文件附件。支持 Bearer 或会话 Cookie。",
+        None,
+    ),
     "get_problem_version": (
         "读取自己的个人题集版本和题目元数据；版本不存在或无权访问返回 404。",
         {
@@ -1471,6 +1529,8 @@ ADMIN_OPERATIONS = {
 AUTH_OPERATIONS = {"register", "login", "refresh"}
 UPLOAD_OPERATIONS = {"upload_file", "upload_problems", "upload_config"}
 DOWNLOADS = {
+    "export_problem_version": {"application/json": VERSION_DATASET},
+    "export_problem_version_report": {"application/json": VERSION_CHANGE_REPORT},
     "report_markdown": {"text/markdown": "# Evaluation report\n"},
     "report_html": {"text/html": "<!doctype html><html><body>Evaluation report</body></html>"},
     "report_csv": {"text/csv": "\ufeffproblem_id,strategy,status\ntwo-sum,vanilla,success\n"},

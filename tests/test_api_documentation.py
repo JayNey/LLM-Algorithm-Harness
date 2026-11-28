@@ -224,12 +224,45 @@ def test_queue_examples_match_disabled_probe_contract(schema, kind):
         ("reports/csv/{run_id}", "text/csv"),
         ("logs/download/{task_id}", "text/plain"),
         ("results/{run_id}/charts/{chart_name}", "image/png"),
+        ("problems/governance/versions/{version_id}/export", "application/json"),
+        ("problems/governance/versions/{version_id}/report", "application/json"),
     ],
 )
 def test_downloads_are_not_documented_as_json_envelopes(schema, path, media_type):
     response = schema["paths"][f"/api/v1/{path}"]["get"]["responses"]["200"]
     assert set(response["content"]) == {media_type}
     assert "Content-Disposition" in response["headers"]
+
+
+def test_governance_download_examples_describe_version_data_and_persisted_changes(schema):
+    from src.models import Problem
+
+    base = "/api/v1/problems/governance/versions/{version_id}"
+
+    def example(suffix):
+        return schema["paths"][base + suffix]["get"]["responses"]["200"]["content"][
+            "application/json"
+        ]["example"]
+
+    dataset = example("/export")
+    assert isinstance(dataset, list) and dataset
+    problem = Problem.model_validate(dataset[0])
+    assert problem.hidden_test_cases
+    assert problem.source_metadata
+    report = example("/report")
+    assert report["version"]["id"] == "version-demo"
+    assert report["version"]["problem_count"] == len(dataset)
+    change = report["changes"][0]
+    assert change["problem_id"] == problem.problem_id
+    assert change["original_tags"] == ["Array"]
+    assert change["new_tags"] == problem.tags == ["array"]
+    assert change["original_difficulty"] == "easy"
+    assert change["new_difficulty"] == problem.difficulty == "medium"
+    assert change["approval"] == {
+        "normalize_tags": True,
+        "suggested_tags": [],
+        "apply_difficulty": True,
+    }
 
 
 def test_docs_pages_and_schema_are_public_without_startup_secrets():
