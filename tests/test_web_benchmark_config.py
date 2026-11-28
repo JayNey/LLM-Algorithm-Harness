@@ -135,8 +135,8 @@ def test_saved_config_controls_real_execution_and_history(api, tmp_path, monkeyp
     # Persisted execution units prove the selected ID, including suite order before limit.
     files = list((Path("results/benchmarks/api") / identity / "units").rglob("*.json"))
     assert files
-    assert any('"b"' in f.read_text() for f in files)
-    assert not any('"a"' in f.read_text() for f in files)
+    assert any('"b"' in f.read_text(encoding="utf-8") for f in files)
+    assert not any('"a"' in f.read_text(encoding="utf-8") for f in files)
     history = client.get(f"/api/v1/benchmarks/suites/{suite['id']}/runs", headers=headers).json()[
         "data"
     ]
